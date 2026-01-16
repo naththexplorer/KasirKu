@@ -9,6 +9,9 @@ import '../../../../data/repositories/shop_repository.dart';
 import '../providers/settings_provider.dart';
 import 'shop_profile_screen.dart';
 
+// StateProvider untuk trigger refresh shop data
+final _shopRefreshProvider = StateProvider<int>((ref) => 0);
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -88,36 +91,53 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          FutureBuilder<Shop?>(
-            future: ref.read(shopRepositoryProvider).getShop(),
-            builder: (context, snapshot) {
-              final shop = snapshot.data;
-              if (shop == null) return const SizedBox.shrink();
+          // Payment method dropdown with real-time update
+          Consumer(
+            builder: (context, ref, child) {
+              // Watch the refresh trigger - when it changes, widget rebuilds
+              ref.watch(_shopRefreshProvider);
 
-              return ListTile(
-                leading: const Icon(Icons.payments_outlined),
-                title: const Text('Metode Pembayaran Default'),
-                subtitle: Text(
-                  'Metode terpilih: ${shop.defaultPaymentMethod.toUpperCase()}',
-                ),
-                trailing: DropdownButton<String>(
-                  value: shop.defaultPaymentMethod,
-                  underline: const SizedBox(),
-                  items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('CASH')),
-                    DropdownMenuItem(value: 'qris', child: Text('QRIS')),
-                  ],
-                  onChanged: (val) async {
-                    if (val != null) {
-                      await ref
-                          .read(shopRepositoryProvider)
-                          .updateDefaultPaymentMethod(val);
-                      // Invalidate isShopSetup to trigger UI refresh if needed,
-                      // or just use a local setState inside a StatefulWidget
-                      // But since this is a ConsumerWidget, we could use a provider to watch shop.
-                    }
-                  },
-                ),
+              return FutureBuilder<Shop?>(
+                future: ref.read(shopRepositoryProvider).getShop(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data == null) {
+                    return const ListTile(
+                      leading: Icon(Icons.payments_outlined),
+                      title: Text('Metode Pembayaran Default'),
+                      trailing: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  }
+
+                  final shop = snapshot.data!;
+                  return ListTile(
+                    leading: const Icon(Icons.payments_outlined),
+                    title: const Text('Metode Pembayaran Default'),
+                    subtitle: Text(
+                      'Metode terpilih: ${shop.defaultPaymentMethod.toUpperCase()}',
+                    ),
+                    trailing: DropdownButton<String>(
+                      value: shop.defaultPaymentMethod,
+                      underline: const SizedBox(),
+                      items: const [
+                        DropdownMenuItem(value: 'cash', child: Text('CASH')),
+                        DropdownMenuItem(value: 'qris', child: Text('QRIS')),
+                      ],
+                      onChanged: (val) async {
+                        if (val != null) {
+                          await ref
+                              .read(shopRepositoryProvider)
+                              .updateDefaultPaymentMethod(val);
+                          // Increment state to trigger rebuild
+                          ref.read(_shopRefreshProvider.notifier).state++;
+                        }
+                      },
+                    ),
+                  );
+                },
               );
             },
           ),

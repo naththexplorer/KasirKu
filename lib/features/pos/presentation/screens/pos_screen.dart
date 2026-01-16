@@ -799,7 +799,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
               );
             }
           },
-          child: const Text('LUNASI'),
+          child: const Text('Lanjutkan'),
         ),
       ],
     );

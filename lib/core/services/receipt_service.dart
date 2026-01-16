@@ -1,11 +1,39 @@
-import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import '../../data/local/db/app_database.dart';
 import '../utils/currency_utils.dart';
 
 class ReceiptService {
+  /// Generates a PNG image of the receipt (for sharing via WhatsApp, Instagram, etc.)
+  /// Uses a fixed pixel width with dynamic height to prevent cropping.
+  static Future<Uint8List> generateReceiptImage({
+    required Shop shop,
+    required Transaction transaction,
+    required List<TransactionItem> items,
+    bool is80mm = false,
+  }) async {
+    // Generate PDF first
+    final pdfBytes = await generateReceiptPdf(
+      shop: shop,
+      transaction: transaction,
+      items: items,
+      is80mm: is80mm,
+    );
+
+    // Convert PDF to image using thermal printer DPI (203 standard)
+    // Using 300 DPI causes black images - 203 DPI is correct for thermal printers
+    final pagesStream = Printing.raster(pdfBytes, dpi: 203);
+
+    // Get the first (and only) page from the stream
+    final page = await pagesStream.first;
+    final image = await page.toPng();
+
+    return image;
+  }
+
   /// Generates a Proportional High-Fidelity PDF receipt optimized for Thermal Printers.
   /// Normalized to physical mm to prevent memory exhaustion (Force Close).
   /// Uses a single page with dynamic height to avoid pagination cuts.
@@ -17,32 +45,41 @@ class ReceiptService {
   }) async {
     final pdf = pw.Document();
 
-    // --- PHYSICAL NORMALIZATION (mm to points) ---
-    // Standard 58mm or 80mm widths.
-    // This prevents the "15-inch wide" OOM crash while keeping the design premium.
-    final double paperWidth = (is80mm ? 80.0 : 58.0) * PdfPageFormat.mm;
+    // --- PHYSICAL MM-BASED DIMENSIONS ---
+    // Use exact thermal printer paper sizes in millimeters
+    final double paperWidthMm = is80mm ? 80.0 : 58.0;
+    final double paperWidth = paperWidthMm * PdfPageFormat.mm;
 
-    // Proportional Font Sizes (Scaled down from the 1080p target to physical mm)
-    // Formula: (TargetSize / 1080) * paperWidth
-    final double h1 = (72.0 / 1080.0) * paperWidth; // Shop Name
-    final double h2 = (48.0 / 1080.0) * paperWidth; // Product Name
-    final double std = (42.0 / 1080.0) * paperWidth; // Headers/Totals
-    final double tiny = (34.0 / 1080.0) * paperWidth; // Metadata/Qty Info
+    // Font sizes in mm (scaled proportionally to paper width)
+    // Reference: 58mm width as baseline
+    final double h1 =
+        (3.6 / 58.0) * paperWidthMm * PdfPageFormat.mm; // Shop name
+    final double h2 =
+        (2.4 / 58.0) * paperWidthMm * PdfPageFormat.mm; // Product name
+    final double std =
+        (2.1 / 58.0) * paperWidthMm * PdfPageFormat.mm; // Headers/totals
+    final double tiny =
+        (1.8 / 58.0) * paperWidthMm * PdfPageFormat.mm; // Metadata
 
     final font = pw.Font.courier();
     final fontBold = pw.Font.courierBold();
 
-    // --- DYNAMIC HEIGHT CALCULATION (in mm/points) ---
+    // Load KasirKu logo
+    final logoData = await rootBundle.load('lib/core/constants/KasirKu.png');
+    final logoImage = pw.MemoryImage(logoData.buffer.asUint8List());
+
+    // --- DYNAMIC HEIGHT CALCULATION (in mm) ---
     double calculateHeight() {
       double h = 0;
-      h += (350 / 1080) * paperWidth; // Header
-      h += (180 / 1080) * paperWidth; // Metadata
-      h += items.length * ((110 / 1080) * paperWidth); // Items
-      h += (300 / 1080) * paperWidth; // Totals
-      h += (150 / 1080) * paperWidth; // Payment
-      h += (450 / 1080) * paperWidth; // Footer + Barcode + Padding
+      h += 20 * PdfPageFormat.mm; // Logo + spacing
+      h += 25 * PdfPageFormat.mm; // Header section
+      h += 15 * PdfPageFormat.mm; // Metadata section
+      h += items.length * (8 * PdfPageFormat.mm); // Items (dynamic)
+      h += 20 * PdfPageFormat.mm; // Totals section
+      h += 12 * PdfPageFormat.mm; // Payment section
+      h += 30 * PdfPageFormat.mm; // Footer + Barcode + Padding
 
-      // Minimum height to avoid stubby receipts (equivalent to ~10cm)
+      // Minimum height for short receipts (~100mm)
       final minHeight = 100 * PdfPageFormat.mm;
       return h < minHeight ? minHeight : h;
     }
@@ -54,12 +91,21 @@ class ReceiptService {
         pageFormat: PdfPageFormat(
           paperWidth,
           totalHeight,
-          marginAll: 5 * PdfPageFormat.mm, // standard 5mm margin
+          marginAll: 0, // No margin - prevents all cropping
         ),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              // --- KASIRKU LOGO ---
+              pw.Image(
+                logoImage,
+                width:
+                    paperWidthMm * 0.4 * PdfPageFormat.mm, // 40% of paper width
+                height: paperWidthMm * 0.4 * PdfPageFormat.mm,
+              ),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
+
               // --- HEADER ---
               pw.Text(
                 shop.name.toUpperCase(),
@@ -68,7 +114,7 @@ class ReceiptService {
               ),
               if (shop.address != null)
                 pw.Padding(
-                  padding: const pw.EdgeInsets.only(top: 4),
+                  padding: pw.EdgeInsets.only(top: 2 * PdfPageFormat.mm),
                   child: pw.Text(
                     shop.address!,
                     textAlign: pw.TextAlign.center,
@@ -81,9 +127,9 @@ class ReceiptService {
                   style: pw.TextStyle(font: font, fontSize: std),
                 ),
 
-              pw.SizedBox(height: 15),
+              pw.SizedBox(height: 4 * PdfPageFormat.mm),
               pw.Divider(thickness: 1, borderStyle: pw.BorderStyle.dashed),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
 
               // --- METADATA ---
               pw.Column(
@@ -93,7 +139,7 @@ class ReceiptService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text(
-                        'INVOICE:',
+                        'INV:',
                         style: pw.TextStyle(font: font, fontSize: tiny),
                       ),
                       pw.Text(
@@ -109,14 +155,14 @@ class ReceiptService {
                 ],
               ),
 
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
               pw.Divider(thickness: 0.5),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
 
               // --- ITEMS (Stacked Layout) ---
               ...items.map(
                 (item) => pw.Padding(
-                  padding: const pw.EdgeInsets.only(bottom: 8),
+                  padding: pw.EdgeInsets.only(bottom: 2 * PdfPageFormat.mm),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
@@ -144,9 +190,9 @@ class ReceiptService {
                 ),
               ),
 
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
               pw.Divider(thickness: 1, borderStyle: pw.BorderStyle.dashed),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
 
               // --- TOTALS ---
               _buildCleanRow(
@@ -170,7 +216,7 @@ class ReceiptService {
                   std,
                 ),
 
-              pw.SizedBox(height: 5),
+              pw.SizedBox(height: 2 * PdfPageFormat.mm),
               _buildCleanRow(
                 'TOTAL',
                 CurrencyUtils.format(transaction.totalAmount),
@@ -178,9 +224,9 @@ class ReceiptService {
                 h1,
               ),
 
-              pw.SizedBox(height: 15),
+              pw.SizedBox(height: 4 * PdfPageFormat.mm),
               pw.Divider(thickness: 0.5),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 3 * PdfPageFormat.mm),
 
               // --- PAYMENT ---
               _buildCleanRow(
@@ -200,7 +246,7 @@ class ReceiptService {
                   std,
                 ),
 
-              pw.SizedBox(height: 30),
+              pw.SizedBox(height: 6 * PdfPageFormat.mm),
 
               // --- FOOTER ---
               pw.Text(
@@ -212,17 +258,17 @@ class ReceiptService {
                 style: pw.TextStyle(font: font, fontSize: tiny),
               ),
 
-              pw.SizedBox(height: 20),
+              pw.SizedBox(height: 5 * PdfPageFormat.mm),
 
               // Proportional Barcode
               pw.BarcodeWidget(
                 barcode: pw.Barcode.code128(),
                 data: transaction.invoiceNumber,
-                width: paperWidth * 0.6,
-                height: 40,
+                width: paperWidthMm * 0.7 * PdfPageFormat.mm,
+                height: 8 * PdfPageFormat.mm,
                 drawText: false,
               ),
-              pw.SizedBox(height: 20),
+              pw.SizedBox(height: 4 * PdfPageFormat.mm),
             ],
           );
         },
