@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "590220750885",
+    "project_id": "kasirku-90526",
+    "storage_bucket": "kasirku-90526.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:590220750885:android:a6a5a0642299757a57cfcc",
+        "android_client_info": {
+          "package_name": "com.olagon.kasirku"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "590220750885-u8hrjlukd6k3pfd837fl12qqmu27h6h3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.olagon.kasirku",
+            "certificate_hash": "d8b42a9102771eebbcdb6ad859298f2910d1f987"
+          }
+        },
+        {
+          "client_id": "590220750885-asdmjifk75uhucbbkdlo0fv6b9ifduc9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxlhvOvuo5RhPmJF1yQIKfEwYR8y37KJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "590220750885-asdmjifk75uhucbbkdlo0fv6b9ifduc9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
