@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../customers/presentation/providers/customer_providers.dart';
 import '../../../../core/utils/currency_utils.dart';
@@ -79,13 +80,16 @@ class CartScreen extends ConsumerWidget {
                 ),
                 // Bottom Bar
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   decoration: BoxDecoration(
                     color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 20,
                         offset: const Offset(0, -4),
                       ),
                     ],
@@ -94,17 +98,20 @@ class CartScreen extends ConsumerWidget {
                     child: FilledButton(
                       onPressed: () => _showPaymentSheet(context, state),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: const StadiumBorder(),
                         backgroundColor: const Color(0xFF6366F1),
+                        shadowColor: const Color(
+                          0xFF6366F1,
+                        ).withValues(alpha: 0.4),
+                        elevation: 4,
                       ),
                       child: const Text(
                         'Bayar',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -248,12 +255,11 @@ class CartItemTile extends ConsumerWidget {
                       .read(posControllerProvider.notifier)
                       .updateQuantity(item.product, item.quantity - 1),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    '${item.quantity}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                _QuantityInput(
+                  initialQuantity: item.quantity,
+                  onChanged: (val) => ref
+                      .read(posControllerProvider.notifier)
+                      .updateQuantity(item.product, val),
                 ),
                 _CartActionButton(
                   icon: Icons.add,
@@ -426,6 +432,83 @@ class TaxSelector extends ConsumerWidget {
             child: const Text('Simpan'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuantityInput extends StatefulWidget {
+  final int initialQuantity;
+  final Function(int) onChanged;
+
+  const _QuantityInput({
+    required this.initialQuantity,
+    required this.onChanged,
+  });
+
+  @override
+  State<_QuantityInput> createState() => _QuantityInputState();
+}
+
+class _QuantityInputState extends State<_QuantityInput> {
+  late TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialQuantity.toString(),
+    );
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        _commit();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuantityInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialQuantity != oldWidget.initialQuantity &&
+        !_focusNode.hasFocus) {
+      _controller.text = widget.initialQuantity.toString();
+    }
+  }
+
+  void _commit() {
+    final val = int.tryParse(_controller.text);
+    if (val != null && val != widget.initialQuantity) {
+      widget.onChanged(val);
+    } else if (val == null) {
+      _controller.text = widget.initialQuantity.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: const TextStyle(fontWeight: FontWeight.bold),
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 8),
+          border: InputBorder.none,
+        ),
+        onSubmitted: (_) => _commit(),
       ),
     );
   }
