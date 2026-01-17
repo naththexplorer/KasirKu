@@ -74,6 +74,8 @@ class Shops extends Table {
   IntColumn get taxRate => integer().withDefault(const Constant(0))();
   TextColumn get defaultPaymentMethod =>
       text().withDefault(const Constant('cash'))();
+  IntColumn get printerPaperSize =>
+      integer().withDefault(const Constant(58))(); // 58 or 80
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -128,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,7 +143,6 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(expenses);
       }
       if (from < 4) {
-        // ... (existing migrations)
         try {
           await m.addColumn(products, products.imagePath);
         } catch (_) {}
@@ -164,12 +165,14 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(users, users.email);
       }
       if (from < 8) {
-        // Fix for missing qrisImagePath in v7
         try {
           await m.addColumn(shops, shops.qrisImagePath);
-        } catch (_) {
-          // Ignore if already exists
-        }
+        } catch (_) {}
+      }
+      if (from < 9) {
+        try {
+          await m.addColumn(shops, shops.printerPaperSize);
+        } catch (_) {}
       }
     },
   );

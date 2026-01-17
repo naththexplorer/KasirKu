@@ -13,14 +13,12 @@ class ReceiptService {
     required Shop shop,
     required Transaction transaction,
     required List<TransactionItem> items,
-    bool is80mm = false,
   }) async {
     // Generate PDF first
     final pdfBytes = await generateReceiptPdf(
       shop: shop,
       transaction: transaction,
       items: items,
-      is80mm: is80mm,
     );
 
     // Convert PDF to image using thermal printer DPI (203 standard)
@@ -41,12 +39,12 @@ class ReceiptService {
     required Shop shop,
     required Transaction transaction,
     required List<TransactionItem> items,
-    bool is80mm = false,
   }) async {
     final pdf = pw.Document();
 
     // --- PHYSICAL MM-BASED DIMENSIONS ---
     // Use exact thermal printer paper sizes in millimeters
+    final bool is80mm = shop.printerPaperSize == 80;
     final double paperWidthMm = is80mm ? 80.0 : 58.0;
     final double paperWidth = paperWidthMm * PdfPageFormat.mm;
 
@@ -310,9 +308,9 @@ class ReceiptService {
     required Shop shop,
     required Transaction transaction,
     required List<TransactionItem> items,
-    bool is80mm = false,
   }) async {
     final profile = await CapabilityProfile.load();
+    final bool is80mm = shop.printerPaperSize == 80;
     final generator = Generator(
       is80mm ? PaperSize.mm80 : PaperSize.mm58,
       profile,

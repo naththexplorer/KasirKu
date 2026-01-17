@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/onboarding_controller.dart';
-import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../../core/widgets/app_logo.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -192,44 +191,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ),
 
                 const SizedBox(height: 32),
-                // Google Login
-                OutlinedButton.icon(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          final success = await ref
-                              .read(onboardingControllerProvider.notifier)
-                              .loginWithGoogle();
-                          if (success && context.mounted) {
-                            final user = ref.read(authControllerProvider);
-                            if (user != null) {
-                              // If user already exists (returning user), we can go to dashboard
-                              context.pushReplacement('/');
-                            } else {
-                              // New user, stay here to fill shop info
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Google tertaut! Silakan lengkapi data toko.',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                  icon: Image.network(
-                    'https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png',
-                    height: 24,
-                  ),
-                  label: const Text('Daftar dengan Google'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
 
                 const SizedBox(height: 24),
                 Row(

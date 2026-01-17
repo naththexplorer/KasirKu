@@ -21,7 +21,8 @@ class ShopRepository {
   }
 
   Future<void> updateShop(ShopsCompanion shop) async {
-    await (_db.update(_db.shops)..where((s) => s.id.equals(1))).write(shop);
+    final id = shop.id.present ? shop.id.value : 1;
+    await (_db.update(_db.shops)..where((s) => s.id.equals(id))).write(shop);
   }
 
   Future<void> updateDefaultPaymentMethod(String method) async {
@@ -33,6 +34,12 @@ class ShopRepository {
   Future<void> updateQrisImagePath(String? path) async {
     await (_db.update(_db.shops)..where((s) => s.id.equals(1))).write(
       ShopsCompanion(qrisImagePath: Value(path)),
+    );
+  }
+
+  Future<void> updatePrinterPaperSize(int size) async {
+    await (_db.update(_db.shops)..where((s) => s.id.equals(1))).write(
+      ShopsCompanion(printerPaperSize: Value(size)),
     );
   }
 }

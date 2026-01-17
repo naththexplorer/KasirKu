@@ -2489,6 +2489,18 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _printerPaperSizeMeta = const VerificationMeta(
+    'printerPaperSize',
+  );
+  @override
+  late final GeneratedColumn<int> printerPaperSize = GeneratedColumn<int>(
+    'printer_paper_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(58),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2500,6 +2512,7 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
     businessType,
     taxRate,
     defaultPaymentMethod,
+    printerPaperSize,
     createdAt,
   ];
   @override
@@ -2582,6 +2595,15 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('printer_paper_size')) {
+      context.handle(
+        _printerPaperSizeMeta,
+        printerPaperSize.isAcceptableOrUnknown(
+          data['printer_paper_size']!,
+          _printerPaperSizeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2627,6 +2649,10 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
         DriftSqlType.string,
         data['${effectivePrefix}default_payment_method'],
       )!,
+      printerPaperSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}printer_paper_size'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2650,6 +2676,7 @@ class Shop extends DataClass implements Insertable<Shop> {
   final String businessType;
   final int taxRate;
   final String defaultPaymentMethod;
+  final int printerPaperSize;
   final DateTime createdAt;
   const Shop({
     required this.id,
@@ -2661,6 +2688,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     required this.businessType,
     required this.taxRate,
     required this.defaultPaymentMethod,
+    required this.printerPaperSize,
     required this.createdAt,
   });
   @override
@@ -2683,6 +2711,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     map['business_type'] = Variable<String>(businessType);
     map['tax_rate'] = Variable<int>(taxRate);
     map['default_payment_method'] = Variable<String>(defaultPaymentMethod);
+    map['printer_paper_size'] = Variable<int>(printerPaperSize);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -2706,6 +2735,7 @@ class Shop extends DataClass implements Insertable<Shop> {
       businessType: Value(businessType),
       taxRate: Value(taxRate),
       defaultPaymentMethod: Value(defaultPaymentMethod),
+      printerPaperSize: Value(printerPaperSize),
       createdAt: Value(createdAt),
     );
   }
@@ -2727,6 +2757,7 @@ class Shop extends DataClass implements Insertable<Shop> {
       defaultPaymentMethod: serializer.fromJson<String>(
         json['defaultPaymentMethod'],
       ),
+      printerPaperSize: serializer.fromJson<int>(json['printerPaperSize']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2743,6 +2774,7 @@ class Shop extends DataClass implements Insertable<Shop> {
       'businessType': serializer.toJson<String>(businessType),
       'taxRate': serializer.toJson<int>(taxRate),
       'defaultPaymentMethod': serializer.toJson<String>(defaultPaymentMethod),
+      'printerPaperSize': serializer.toJson<int>(printerPaperSize),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2757,6 +2789,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     String? businessType,
     int? taxRate,
     String? defaultPaymentMethod,
+    int? printerPaperSize,
     DateTime? createdAt,
   }) => Shop(
     id: id ?? this.id,
@@ -2770,6 +2803,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     businessType: businessType ?? this.businessType,
     taxRate: taxRate ?? this.taxRate,
     defaultPaymentMethod: defaultPaymentMethod ?? this.defaultPaymentMethod,
+    printerPaperSize: printerPaperSize ?? this.printerPaperSize,
     createdAt: createdAt ?? this.createdAt,
   );
   Shop copyWithCompanion(ShopsCompanion data) {
@@ -2789,6 +2823,9 @@ class Shop extends DataClass implements Insertable<Shop> {
       defaultPaymentMethod: data.defaultPaymentMethod.present
           ? data.defaultPaymentMethod.value
           : this.defaultPaymentMethod,
+      printerPaperSize: data.printerPaperSize.present
+          ? data.printerPaperSize.value
+          : this.printerPaperSize,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2805,6 +2842,7 @@ class Shop extends DataClass implements Insertable<Shop> {
           ..write('businessType: $businessType, ')
           ..write('taxRate: $taxRate, ')
           ..write('defaultPaymentMethod: $defaultPaymentMethod, ')
+          ..write('printerPaperSize: $printerPaperSize, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2821,6 +2859,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     businessType,
     taxRate,
     defaultPaymentMethod,
+    printerPaperSize,
     createdAt,
   );
   @override
@@ -2836,6 +2875,7 @@ class Shop extends DataClass implements Insertable<Shop> {
           other.businessType == this.businessType &&
           other.taxRate == this.taxRate &&
           other.defaultPaymentMethod == this.defaultPaymentMethod &&
+          other.printerPaperSize == this.printerPaperSize &&
           other.createdAt == this.createdAt);
 }
 
@@ -2849,6 +2889,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
   final Value<String> businessType;
   final Value<int> taxRate;
   final Value<String> defaultPaymentMethod;
+  final Value<int> printerPaperSize;
   final Value<DateTime> createdAt;
   const ShopsCompanion({
     this.id = const Value.absent(),
@@ -2860,6 +2901,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     this.businessType = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.defaultPaymentMethod = const Value.absent(),
+    this.printerPaperSize = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   ShopsCompanion.insert({
@@ -2872,6 +2914,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     this.businessType = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.defaultPaymentMethod = const Value.absent(),
+    this.printerPaperSize = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Shop> custom({
@@ -2884,6 +2927,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     Expression<String>? businessType,
     Expression<int>? taxRate,
     Expression<String>? defaultPaymentMethod,
+    Expression<int>? printerPaperSize,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -2897,6 +2941,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
       if (taxRate != null) 'tax_rate': taxRate,
       if (defaultPaymentMethod != null)
         'default_payment_method': defaultPaymentMethod,
+      if (printerPaperSize != null) 'printer_paper_size': printerPaperSize,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2911,6 +2956,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     Value<String>? businessType,
     Value<int>? taxRate,
     Value<String>? defaultPaymentMethod,
+    Value<int>? printerPaperSize,
     Value<DateTime>? createdAt,
   }) {
     return ShopsCompanion(
@@ -2923,6 +2969,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
       businessType: businessType ?? this.businessType,
       taxRate: taxRate ?? this.taxRate,
       defaultPaymentMethod: defaultPaymentMethod ?? this.defaultPaymentMethod,
+      printerPaperSize: printerPaperSize ?? this.printerPaperSize,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2959,6 +3006,9 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
         defaultPaymentMethod.value,
       );
     }
+    if (printerPaperSize.present) {
+      map['printer_paper_size'] = Variable<int>(printerPaperSize.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2977,6 +3027,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
           ..write('businessType: $businessType, ')
           ..write('taxRate: $taxRate, ')
           ..write('defaultPaymentMethod: $defaultPaymentMethod, ')
+          ..write('printerPaperSize: $printerPaperSize, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();

@@ -69,13 +69,4 @@ class OnboardingController extends _$OnboardingController {
 
     return !state.hasError;
   }
-
-  Future<bool> loginWithGoogle() async {
-    state = const AsyncValue.loading();
-    final success = await ref
-        .read(authControllerProvider.notifier)
-        .loginWithGoogle();
-    state = const AsyncValue.data(null);
-    return success;
-  }
 }

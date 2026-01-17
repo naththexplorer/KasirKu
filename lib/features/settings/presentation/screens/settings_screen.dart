@@ -9,6 +9,7 @@ import '../../../../data/repositories/shop_repository.dart';
 import '../providers/settings_provider.dart';
 import 'shop_profile_screen.dart';
 import 'qris_upload_screen.dart';
+import '../../../../core/services/backup_service.dart';
 
 // StateProvider untuk trigger refresh shop data
 final _shopRefreshProvider = StateProvider<int>((ref) => 0);
@@ -142,6 +143,41 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          Consumer(
+            builder: (context, ref, child) {
+              ref.watch(_shopRefreshProvider);
+              return FutureBuilder<Shop?>(
+                future: ref.read(shopRepositoryProvider).getShop(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data == null) {
+                    return const SizedBox.shrink();
+                  }
+                  final shop = snapshot.data!;
+                  return ListTile(
+                    leading: const Icon(Icons.print_outlined),
+                    title: const Text('Ukuran Kertas Struk'),
+                    subtitle: Text('${shop.printerPaperSize}mm (Thermal)'),
+                    trailing: DropdownButton<int>(
+                      value: shop.printerPaperSize,
+                      underline: const SizedBox(),
+                      items: const [
+                        DropdownMenuItem(value: 58, child: Text('58mm')),
+                        DropdownMenuItem(value: 80, child: Text('80mm')),
+                      ],
+                      onChanged: (val) async {
+                        if (val != null) {
+                          await ref
+                              .read(shopRepositoryProvider)
+                              .updatePrinterPaperSize(val);
+                          ref.read(_shopRefreshProvider.notifier).state++;
+                        }
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.qr_code_2),
             title: const Text('QR Code QRIS'),
@@ -160,62 +196,37 @@ class SettingsScreen extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
-              'Pencadangan (Cloud)',
+              'Pencadangan Data',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.indigo,
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.indigo.withValues(alpha: 0.1)),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.cloud_sync,
-                    size: 48,
-                    color: Colors.indigo.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Fitur Cloud Sync',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Fitur pencadangan otomatis sedang dalam pengembangan.\nData Anda saat ini tersimpan aman secara lokal di perangkat ini.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+          ListTile(
+            leading: const Icon(Icons.download_rounded, color: Colors.green),
+            title: const Text('Backup Data (CSV/Excel)'),
+            subtitle: const Text('Export semua data transaksi & produk ke ZIP'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              try {
+                // Show loading
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Sedang menyiapkan data...')),
+                );
+
+                await ref.read(backupServiceProvider).exportData();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal backup: $e'),
+                      backgroundColor: Colors.red,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'SOON',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber.shade800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                  );
+                }
+              }
+            },
           ),
           const Divider(),
           const Padding(

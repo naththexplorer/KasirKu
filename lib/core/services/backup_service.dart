@@ -1,150 +1,140 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:csv/csv.dart';
+import 'package:archive/archive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'google_auth_service.dart';
-import 'backup_result.dart';
-
-enum BackupStatus { idle, loading, success, error }
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../data/local/db/app_database.dart';
+import '../../core/providers.dart';
 
 final backupServiceProvider = Provider<BackupService>((ref) {
-  return BackupService(ref.watch(googleAuthServiceProvider));
+  return BackupService(ref.read(databaseProvider));
 });
 
 class BackupService {
-  final GoogleAuthService _authService;
+  final AppDatabase _db;
 
-  BackupService(this._authService);
+  BackupService(this._db);
 
-  Future<String> _getDbPath() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final newPath = p.join(directory.path, 'kasirku.sqlite');
-    final oldPath = p.join(directory.path, 'kasir_offline.sqlite');
+  Future<void> exportData() async {
+    final archive = Archive();
 
-    // Migration: If old file exists and new doesn't, rename it
-    if (await File(oldPath).exists() && !(await File(newPath).exists())) {
-      await File(oldPath).rename(newPath);
-    }
+    // 1. Products
+    final products = await _db.select(_db.products).get();
+    final productCsv = const ListToCsvConverter().convert([
+      ['ID', 'Name', 'Barcode', 'Price', 'Cost', 'Stock', 'Category'],
+      ...products.map(
+        (e) => [
+          e.id,
+          e.name,
+          e.barcode,
+          e.price,
+          e.cost, // Fixed: cost instead of costPrice
+          e.stock,
+          e.categoryId,
+        ],
+      ),
+    ]);
+    archive.addFile(
+      ArchiveFile(
+        'products.csv',
+        utf8.encode(productCsv).length,
+        utf8.encode(productCsv),
+      ),
+    );
 
-    return newPath;
-  }
+    // 2. Transactions
+    final transactions = await _db.select(_db.transactions).get();
+    final transactionCsv = const ListToCsvConverter().convert([
+      ['ID', 'Date', 'Total', 'Payment Method', 'Tax', 'Customer ID'],
+      ...transactions.map(
+        (e) => [
+          e.id,
+          e.createdAt.toIso8601String(),
+          e.totalAmount,
+          e.paymentMethod,
+          e.tax, // Fixed: tax instead of taxAmount
+          e.customerId,
+        ],
+      ),
+    ]);
+    archive.addFile(
+      ArchiveFile(
+        'transactions.csv',
+        utf8.encode(transactionCsv).length,
+        utf8.encode(transactionCsv),
+      ),
+    );
 
-  Future<BackupResult?> _preflightCheck() async {
-    // 1. Check Connectivity
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      return const BackupNoInternet();
-    }
+    // 3. Transaction Items
+    final items = await _db.select(_db.transactionItems).get();
+    final itemsCsv = const ListToCsvConverter().convert([
+      [
+        'ID',
+        'Transaction ID',
+        'Product ID',
+        'Name',
+        'Quantity',
+        'Price',
+        'Cost',
+      ],
+      ...items.map(
+        (e) => [
+          e.id,
+          e.transactionId,
+          e.productId,
+          e.productName,
+          e.quantity,
+          e.priceAtTime, // Fixed: priceAtTime
+          e.costAtTime, // Fixed: costAtTime
+        ],
+      ),
+    ]);
+    archive.addFile(
+      ArchiveFile(
+        'transaction_items.csv',
+        utf8.encode(itemsCsv).length,
+        utf8.encode(itemsCsv),
+      ),
+    );
 
-    // 2. Practical internet check (can we reach Google?)
-    try {
-      final response = await http
-          .get(Uri.parse('https://www.google.com'))
-          .timeout(const Duration(seconds: 5));
-      if (response.statusCode != 200) return const BackupNoInternet();
-    } catch (_) {
-      return const BackupNoInternet();
-    }
+    // 4. Expenses
+    final expenses = await _db.select(_db.expenses).get();
+    final expenseCsv = const ListToCsvConverter().convert([
+      ['ID', 'Date', 'Amount', 'Description', 'Category'],
+      ...expenses.map(
+        (e) => [
+          e.id,
+          e.date.toIso8601String(),
+          e.amount,
+          e.description,
+          e.category,
+        ],
+      ),
+    ]);
+    archive.addFile(
+      ArchiveFile(
+        'expenses.csv',
+        utf8.encode(expenseCsv).length,
+        utf8.encode(expenseCsv),
+      ),
+    );
 
-    // 3. Check Auth
-    final client = await _authService.getHttpClient();
-    if (client == null) {
-      return const BackupNotAuthenticated();
-    }
+    // 5. ZIP and Share
+    final zipEncoder = ZipEncoder();
+    final zipData = zipEncoder.encode(archive);
 
-    // 4. Check Database File
-    final dbPath = await _getDbPath();
-    if (!await File(dbPath).exists()) {
-      return const BackupFileNotFound();
-    }
+    if (zipData.isNotEmpty) {
+      final dir = await getApplicationDocumentsDirectory();
+      final dateStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final file = File('${dir.path}/backup_kasirku_$dateStr.zip');
+      await file.writeAsBytes(zipData);
 
-    return null; // All good
-  }
-
-  Future<BackupResult> uploadBackup() async {
-    final preflight = await _preflightCheck();
-    if (preflight != null) return preflight;
-
-    final client = await _authService
-        .getHttpClient(); // Guaranteed non-null by preflight
-    final driveApi = drive.DriveApi(client!);
-    final dbPath = await _getDbPath();
-    final file = File(dbPath);
-
-    final media = drive.Media(file.openRead(), await file.length());
-
-    try {
-      final list = await driveApi.files.list(
-        q: "name = 'kasirku_backup.sqlite' and 'appDataFolder' in parents",
-        spaces: 'appDataFolder',
-      );
-
-      if (list.files != null && list.files!.isNotEmpty) {
-        // Update: Don't set parents on update, it's already there
-        final updateFile = drive.File();
-        updateFile.name =
-            'kasirku_backup.sqlite'; // Name should still be set for update
-        await driveApi.files.update(
-          updateFile,
-          list.files!.first.id!,
-          uploadMedia: media,
-        );
-      } else {
-        // Create: Set parents to appDataFolder
-        final driveFile = drive.File();
-        driveFile.name = 'kasirku_backup.sqlite';
-        driveFile.parents = ['appDataFolder'];
-        await driveApi.files.create(driveFile, uploadMedia: media);
-      }
-      return BackupSuccess(DateTime.now());
-    } catch (e) {
-      return BackupDriveError(e.toString());
-    }
-  }
-
-  Future<BackupResult> restoreBackup() async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      return const BackupNoInternet();
-    }
-
-    final client = await _authService.getHttpClient();
-    if (client == null) return const BackupNotAuthenticated();
-
-    final driveApi = drive.DriveApi(client);
-
-    try {
-      final list = await driveApi.files.list(
-        q: "name = 'kasirku_backup.sqlite' and 'appDataFolder' in parents",
-        spaces: 'appDataFolder',
-      );
-
-      if (list.files == null || list.files!.isEmpty) {
-        return const BackupError('Cadangan tidak ditemukan di Google Drive.');
-      }
-
-      final fileId = list.files!.first.id!;
-      final media =
-          await driveApi.files.get(
-                fileId,
-                downloadOptions: drive.DownloadOptions.fullMedia,
-              )
-              as drive.Media;
-
-      final dbPath = await _getDbPath();
-      final file = File(dbPath);
-      final List<int> data = [];
-      await for (final chunk in media.stream) {
-        data.addAll(chunk);
-      }
-
-      await file.writeAsBytes(data);
-      return BackupSuccess(DateTime.now());
-    } catch (e) {
-      return BackupDriveError(e.toString());
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Backup Data KasirKu $dateStr');
     }
   }
 }
