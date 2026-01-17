@@ -8,17 +8,25 @@ class SoundService {
   final AssetSource _beepSource = AssetSource('sounds/beep.mp3');
 
   SoundService() {
-    // Pre-set the source for faster subsequent plays
-    _player.setSource(_beepSource);
+    // Try to pre-set usage
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      await _player.setSource(_beepSource);
+    } catch (_) {}
   }
 
   Future<void> playBeep() async {
     try {
-      // stop() is essential to reset the playback for high-frequency calls
       await _player.stop();
+      if (_player.source == null) {
+        await _player.setSource(_beepSource);
+      }
       await _player.play(_beepSource, mode: PlayerMode.lowLatency);
     } catch (e) {
-      // Ignore audio errors in production
+      // Ignore audio errors
     }
   }
 

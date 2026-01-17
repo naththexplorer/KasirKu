@@ -82,6 +82,32 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
           ? null
           : _barcodeController.text;
 
+      // Logic Check: Cost > Price
+      if (cost != null && cost > price) {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Cek Harga Modal'),
+            content: Text(
+              'Harga Modal (${CurrencyInputFormatter.format(cost)}) lebih tinggi dari Harga Jual (${CurrencyInputFormatter.format(price)}).\n\nIni berarti Anda akan merugi. Lanjutkan?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Perbaiki'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Lanjutkan'),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) return;
+      }
+
       bool success;
       if (widget.productId == null) {
         // ADD

@@ -62,6 +62,7 @@ dependencies:
   http: ^1.6.0
   esc_pos_utils_plus: ^2.0.2
   share_plus: ^10.1.4
+  image_cropper: ^8.0.2
 
 dev_dependencies:
   flutter_test:

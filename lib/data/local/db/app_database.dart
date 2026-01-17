@@ -68,6 +68,8 @@ class Shops extends Table {
   TextColumn get address => text().nullable()();
   TextColumn get phone => text().nullable()();
   TextColumn get logoPath => text().nullable()();
+  TextColumn get qrisImagePath =>
+      text().nullable()(); // QRIS QR code image path
   TextColumn get businessType => text().withDefault(const Constant('Retail'))();
   IntColumn get taxRate => integer().withDefault(const Constant(0))();
   TextColumn get defaultPaymentMethod =>
@@ -126,7 +128,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -139,8 +141,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(expenses);
       }
       if (from < 4) {
-        // Add new columns added in version 3 & 4
-        // Use try-catch to ignore errors if columns already exist
+        // ... (existing migrations)
         try {
           await m.addColumn(products, products.imagePath);
         } catch (_) {}
@@ -158,14 +159,17 @@ class AppDatabase extends _$AppDatabase {
         } catch (_) {}
       }
       if (from < 6) {
-        // Migration to add pinSalt, username, email
         await m.addColumn(users, users.pinSalt);
         await m.addColumn(users, users.username);
         await m.addColumn(users, users.email);
-        // Note: In a real production app with existing users,
-        // we would need a strategy to upgrade plaintext pins to hashes.
-        // For this local app, we'll assume a fresh setup or re-onboarding
-        // is acceptable, or we'll handle the 'null salt' as 'needs update' in repo.
+      }
+      if (from < 8) {
+        // Fix for missing qrisImagePath in v7
+        try {
+          await m.addColumn(shops, shops.qrisImagePath);
+        } catch (_) {
+          // Ignore if already exists
+        }
       }
     },
   );

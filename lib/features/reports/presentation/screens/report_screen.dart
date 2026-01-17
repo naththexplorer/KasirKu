@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../data/repositories/transaction_repository.dart';
 import '../../../../data/repositories/expense_repository.dart';
 import '../../../../core/utils/currency_utils.dart';
+import 'transaction_detail_screen.dart';
 
 // Provider for transaction history
 final transactionHistoryProvider =
@@ -254,6 +255,10 @@ class _TransactionHistoryTab extends ConsumerWidget {
                   final item = filtered[filtered.length - 1 - index];
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      Icons.info_outline,
+                      color: Colors.indigo.withValues(alpha: 0.7),
+                    ),
                     title: Text(
                       item.transaction.invoiceNumber,
                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -265,6 +270,16 @@ class _TransactionHistoryTab extends ConsumerWidget {
                       CurrencyUtils.format(item.transaction.totalAmount),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TransactionDetailScreen(
+                            transactionId: item.transaction.id,
+                          ),
+                        ),
+                      );
+                    },
                     onLongPress: () => _confirmDeleteTransaction(
                       context,
                       ref,

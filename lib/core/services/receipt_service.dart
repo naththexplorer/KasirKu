@@ -88,10 +88,13 @@ class ReceiptService {
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(
-          paperWidth,
-          totalHeight,
-          marginAll: 0, // No margin - prevents all cropping
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat(paperWidth, totalHeight, marginAll: 0),
+          margin: pw.EdgeInsets.zero,
+          buildBackground: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Container(color: PdfColors.white),
+          ),
         ),
         build: (pw.Context context) {
           return pw.Column(

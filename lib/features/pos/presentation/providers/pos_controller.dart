@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/local/db/app_database.dart';
 import '../../../../data/repositories/transaction_repository.dart';
 import '../../../../core/providers.dart';
-import '../../../../core/services/sound_service.dart';
-import '../../../../features/settings/presentation/providers/settings_provider.dart';
 
 // Simple model for cart item
 class CartItem {
@@ -21,12 +19,14 @@ class PosState {
   final Customer? selectedCustomer;
   final int taxRate;
   final String defaultPaymentMethod;
+  final String? qrisImagePath;
 
   PosState({
     this.cart = const [],
     this.selectedCustomer,
     this.taxRate = 0,
     this.defaultPaymentMethod = 'cash',
+    this.qrisImagePath,
   });
 
   int get subtotal => cart.fold(0, (sum, item) => sum + item.total);
@@ -38,6 +38,7 @@ class PosState {
     Customer? selectedCustomer,
     int? taxRate,
     String? defaultPaymentMethod,
+    String? qrisImagePath,
     bool clearCustomer = false,
   }) {
     return PosState(
@@ -47,6 +48,7 @@ class PosState {
           : (selectedCustomer ?? this.selectedCustomer),
       taxRate: taxRate ?? this.taxRate,
       defaultPaymentMethod: defaultPaymentMethod ?? this.defaultPaymentMethod,
+      qrisImagePath: qrisImagePath ?? this.qrisImagePath,
     );
   }
 }
@@ -54,19 +56,18 @@ class PosState {
 class PosController extends StateNotifier<PosState> {
   final TransactionRepository _transactionRepo;
   final AppDatabase _db;
-  final Ref _ref;
 
-  PosController(this._transactionRepo, this._db, this._ref)
-    : super(PosState()) {
-    _loadDefaultSettings();
+  PosController(this._transactionRepo, this._db) : super(PosState()) {
+    refreshSettings();
   }
 
-  Future<void> _loadDefaultSettings() async {
+  Future<void> refreshSettings() async {
     final shop = await (_db.select(_db.shops)..limit(1)).getSingleOrNull();
     if (shop != null) {
       state = state.copyWith(
         taxRate: shop.taxRate,
         defaultPaymentMethod: shop.defaultPaymentMethod,
+        qrisImagePath: shop.qrisImagePath,
       );
     }
   }
@@ -119,7 +120,9 @@ class PosController extends StateNotifier<PosState> {
   void clearCart() {
     state = PosState(
       taxRate: state.taxRate,
-    ); // Keep tax rate but clear cart/customer
+      defaultPaymentMethod: state.defaultPaymentMethod,
+      qrisImagePath: state.qrisImagePath,
+    );
   }
 
   void setCustomer(Customer? customer) {
@@ -174,11 +177,6 @@ class PosController extends StateNotifier<PosState> {
     // id is not null because we await createTransaction which returns non-nullable int if successful,
     // though the repo signature says it can be null if not using try-catch internally.
     // In our case, let's just use the result.
-    final isSoundEnabled = _ref.read(settingsProvider).isSoundEnabled;
-    if (isSoundEnabled) {
-      _ref.read(soundServiceProvider).playBeep();
-    }
-
     // Note: don't clearCart() here if we want to show success screen with details,
     // but the app usually clears and shows receipt.
     clearCart();
@@ -192,6 +190,5 @@ final posControllerProvider = StateNotifierProvider<PosController, PosState>((
   return PosController(
     ref.watch(transactionRepositoryProvider),
     ref.watch(databaseProvider),
-    ref,
   );
 });

@@ -2430,6 +2430,17 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _qrisImagePathMeta = const VerificationMeta(
+    'qrisImagePath',
+  );
+  @override
+  late final GeneratedColumn<String> qrisImagePath = GeneratedColumn<String>(
+    'qris_image_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _businessTypeMeta = const VerificationMeta(
     'businessType',
   );
@@ -2485,6 +2496,7 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
     address,
     phone,
     logoPath,
+    qrisImagePath,
     businessType,
     taxRate,
     defaultPaymentMethod,
@@ -2529,6 +2541,15 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
       context.handle(
         _logoPathMeta,
         logoPath.isAcceptableOrUnknown(data['logo_path']!, _logoPathMeta),
+      );
+    }
+    if (data.containsKey('qris_image_path')) {
+      context.handle(
+        _qrisImagePathMeta,
+        qrisImagePath.isAcceptableOrUnknown(
+          data['qris_image_path']!,
+          _qrisImagePathMeta,
+        ),
       );
     }
     if (data.containsKey('business_type')) {
@@ -2590,6 +2611,10 @@ class $ShopsTable extends Shops with TableInfo<$ShopsTable, Shop> {
         DriftSqlType.string,
         data['${effectivePrefix}logo_path'],
       ),
+      qrisImagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}qris_image_path'],
+      ),
       businessType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}business_type'],
@@ -2621,6 +2646,7 @@ class Shop extends DataClass implements Insertable<Shop> {
   final String? address;
   final String? phone;
   final String? logoPath;
+  final String? qrisImagePath;
   final String businessType;
   final int taxRate;
   final String defaultPaymentMethod;
@@ -2631,6 +2657,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     this.address,
     this.phone,
     this.logoPath,
+    this.qrisImagePath,
     required this.businessType,
     required this.taxRate,
     required this.defaultPaymentMethod,
@@ -2649,6 +2676,9 @@ class Shop extends DataClass implements Insertable<Shop> {
     }
     if (!nullToAbsent || logoPath != null) {
       map['logo_path'] = Variable<String>(logoPath);
+    }
+    if (!nullToAbsent || qrisImagePath != null) {
+      map['qris_image_path'] = Variable<String>(qrisImagePath);
     }
     map['business_type'] = Variable<String>(businessType);
     map['tax_rate'] = Variable<int>(taxRate);
@@ -2670,6 +2700,9 @@ class Shop extends DataClass implements Insertable<Shop> {
       logoPath: logoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(logoPath),
+      qrisImagePath: qrisImagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qrisImagePath),
       businessType: Value(businessType),
       taxRate: Value(taxRate),
       defaultPaymentMethod: Value(defaultPaymentMethod),
@@ -2688,6 +2721,7 @@ class Shop extends DataClass implements Insertable<Shop> {
       address: serializer.fromJson<String?>(json['address']),
       phone: serializer.fromJson<String?>(json['phone']),
       logoPath: serializer.fromJson<String?>(json['logoPath']),
+      qrisImagePath: serializer.fromJson<String?>(json['qrisImagePath']),
       businessType: serializer.fromJson<String>(json['businessType']),
       taxRate: serializer.fromJson<int>(json['taxRate']),
       defaultPaymentMethod: serializer.fromJson<String>(
@@ -2705,6 +2739,7 @@ class Shop extends DataClass implements Insertable<Shop> {
       'address': serializer.toJson<String?>(address),
       'phone': serializer.toJson<String?>(phone),
       'logoPath': serializer.toJson<String?>(logoPath),
+      'qrisImagePath': serializer.toJson<String?>(qrisImagePath),
       'businessType': serializer.toJson<String>(businessType),
       'taxRate': serializer.toJson<int>(taxRate),
       'defaultPaymentMethod': serializer.toJson<String>(defaultPaymentMethod),
@@ -2718,6 +2753,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     Value<String?> address = const Value.absent(),
     Value<String?> phone = const Value.absent(),
     Value<String?> logoPath = const Value.absent(),
+    Value<String?> qrisImagePath = const Value.absent(),
     String? businessType,
     int? taxRate,
     String? defaultPaymentMethod,
@@ -2728,6 +2764,9 @@ class Shop extends DataClass implements Insertable<Shop> {
     address: address.present ? address.value : this.address,
     phone: phone.present ? phone.value : this.phone,
     logoPath: logoPath.present ? logoPath.value : this.logoPath,
+    qrisImagePath: qrisImagePath.present
+        ? qrisImagePath.value
+        : this.qrisImagePath,
     businessType: businessType ?? this.businessType,
     taxRate: taxRate ?? this.taxRate,
     defaultPaymentMethod: defaultPaymentMethod ?? this.defaultPaymentMethod,
@@ -2740,6 +2779,9 @@ class Shop extends DataClass implements Insertable<Shop> {
       address: data.address.present ? data.address.value : this.address,
       phone: data.phone.present ? data.phone.value : this.phone,
       logoPath: data.logoPath.present ? data.logoPath.value : this.logoPath,
+      qrisImagePath: data.qrisImagePath.present
+          ? data.qrisImagePath.value
+          : this.qrisImagePath,
       businessType: data.businessType.present
           ? data.businessType.value
           : this.businessType,
@@ -2759,6 +2801,7 @@ class Shop extends DataClass implements Insertable<Shop> {
           ..write('address: $address, ')
           ..write('phone: $phone, ')
           ..write('logoPath: $logoPath, ')
+          ..write('qrisImagePath: $qrisImagePath, ')
           ..write('businessType: $businessType, ')
           ..write('taxRate: $taxRate, ')
           ..write('defaultPaymentMethod: $defaultPaymentMethod, ')
@@ -2774,6 +2817,7 @@ class Shop extends DataClass implements Insertable<Shop> {
     address,
     phone,
     logoPath,
+    qrisImagePath,
     businessType,
     taxRate,
     defaultPaymentMethod,
@@ -2788,6 +2832,7 @@ class Shop extends DataClass implements Insertable<Shop> {
           other.address == this.address &&
           other.phone == this.phone &&
           other.logoPath == this.logoPath &&
+          other.qrisImagePath == this.qrisImagePath &&
           other.businessType == this.businessType &&
           other.taxRate == this.taxRate &&
           other.defaultPaymentMethod == this.defaultPaymentMethod &&
@@ -2800,6 +2845,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
   final Value<String?> address;
   final Value<String?> phone;
   final Value<String?> logoPath;
+  final Value<String?> qrisImagePath;
   final Value<String> businessType;
   final Value<int> taxRate;
   final Value<String> defaultPaymentMethod;
@@ -2810,6 +2856,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     this.address = const Value.absent(),
     this.phone = const Value.absent(),
     this.logoPath = const Value.absent(),
+    this.qrisImagePath = const Value.absent(),
     this.businessType = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.defaultPaymentMethod = const Value.absent(),
@@ -2821,6 +2868,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     this.address = const Value.absent(),
     this.phone = const Value.absent(),
     this.logoPath = const Value.absent(),
+    this.qrisImagePath = const Value.absent(),
     this.businessType = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.defaultPaymentMethod = const Value.absent(),
@@ -2832,6 +2880,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     Expression<String>? address,
     Expression<String>? phone,
     Expression<String>? logoPath,
+    Expression<String>? qrisImagePath,
     Expression<String>? businessType,
     Expression<int>? taxRate,
     Expression<String>? defaultPaymentMethod,
@@ -2843,6 +2892,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
       if (address != null) 'address': address,
       if (phone != null) 'phone': phone,
       if (logoPath != null) 'logo_path': logoPath,
+      if (qrisImagePath != null) 'qris_image_path': qrisImagePath,
       if (businessType != null) 'business_type': businessType,
       if (taxRate != null) 'tax_rate': taxRate,
       if (defaultPaymentMethod != null)
@@ -2857,6 +2907,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     Value<String?>? address,
     Value<String?>? phone,
     Value<String?>? logoPath,
+    Value<String?>? qrisImagePath,
     Value<String>? businessType,
     Value<int>? taxRate,
     Value<String>? defaultPaymentMethod,
@@ -2868,6 +2919,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
       address: address ?? this.address,
       phone: phone ?? this.phone,
       logoPath: logoPath ?? this.logoPath,
+      qrisImagePath: qrisImagePath ?? this.qrisImagePath,
       businessType: businessType ?? this.businessType,
       taxRate: taxRate ?? this.taxRate,
       defaultPaymentMethod: defaultPaymentMethod ?? this.defaultPaymentMethod,
@@ -2892,6 +2944,9 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
     }
     if (logoPath.present) {
       map['logo_path'] = Variable<String>(logoPath.value);
+    }
+    if (qrisImagePath.present) {
+      map['qris_image_path'] = Variable<String>(qrisImagePath.value);
     }
     if (businessType.present) {
       map['business_type'] = Variable<String>(businessType.value);
@@ -2918,6 +2973,7 @@ class ShopsCompanion extends UpdateCompanion<Shop> {
           ..write('address: $address, ')
           ..write('phone: $phone, ')
           ..write('logoPath: $logoPath, ')
+          ..write('qrisImagePath: $qrisImagePath, ')
           ..write('businessType: $businessType, ')
           ..write('taxRate: $taxRate, ')
           ..write('defaultPaymentMethod: $defaultPaymentMethod, ')
@@ -6371,6 +6427,7 @@ typedef $$ShopsTableCreateCompanionBuilder =
       Value<String?> address,
       Value<String?> phone,
       Value<String?> logoPath,
+      Value<String?> qrisImagePath,
       Value<String> businessType,
       Value<int> taxRate,
       Value<String> defaultPaymentMethod,
@@ -6383,6 +6440,7 @@ typedef $$ShopsTableUpdateCompanionBuilder =
       Value<String?> address,
       Value<String?> phone,
       Value<String?> logoPath,
+      Value<String?> qrisImagePath,
       Value<String> businessType,
       Value<int> taxRate,
       Value<String> defaultPaymentMethod,
@@ -6419,6 +6477,11 @@ class $$ShopsTableFilterComposer extends Composer<_$AppDatabase, $ShopsTable> {
 
   ColumnFilters<String> get logoPath => $composableBuilder(
     column: $table.logoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qrisImagePath => $composableBuilder(
+    column: $table.qrisImagePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6477,6 +6540,11 @@ class $$ShopsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get qrisImagePath => $composableBuilder(
+    column: $table.qrisImagePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get businessType => $composableBuilder(
     column: $table.businessType,
     builder: (column) => ColumnOrderings(column),
@@ -6521,6 +6589,11 @@ class $$ShopsTableAnnotationComposer
 
   GeneratedColumn<String> get logoPath =>
       $composableBuilder(column: $table.logoPath, builder: (column) => column);
+
+  GeneratedColumn<String> get qrisImagePath => $composableBuilder(
+    column: $table.qrisImagePath,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get businessType => $composableBuilder(
     column: $table.businessType,
@@ -6572,6 +6645,7 @@ class $$ShopsTableTableManager
                 Value<String?> address = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
+                Value<String?> qrisImagePath = const Value.absent(),
                 Value<String> businessType = const Value.absent(),
                 Value<int> taxRate = const Value.absent(),
                 Value<String> defaultPaymentMethod = const Value.absent(),
@@ -6582,6 +6656,7 @@ class $$ShopsTableTableManager
                 address: address,
                 phone: phone,
                 logoPath: logoPath,
+                qrisImagePath: qrisImagePath,
                 businessType: businessType,
                 taxRate: taxRate,
                 defaultPaymentMethod: defaultPaymentMethod,
@@ -6594,6 +6669,7 @@ class $$ShopsTableTableManager
                 Value<String?> address = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
+                Value<String?> qrisImagePath = const Value.absent(),
                 Value<String> businessType = const Value.absent(),
                 Value<int> taxRate = const Value.absent(),
                 Value<String> defaultPaymentMethod = const Value.absent(),
@@ -6604,6 +6680,7 @@ class $$ShopsTableTableManager
                 address: address,
                 phone: phone,
                 logoPath: logoPath,
+                qrisImagePath: qrisImagePath,
                 businessType: businessType,
                 taxRate: taxRate,
                 defaultPaymentMethod: defaultPaymentMethod,

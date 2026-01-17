@@ -185,6 +185,49 @@ class TransactionRepository {
 
   Future<void> deleteTransaction(int id) async {
     await _db.transaction(() async {
+      // 1. Get Transaction Info
+      final transaction = await (_db.select(
+        _db.transactions,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+
+      if (transaction == null) return;
+
+      // 2. Get Items to restore stock
+      final items = await (_db.select(
+        _db.transactionItems,
+      )..where((ti) => ti.transactionId.equals(id))).get();
+
+      // 3. Restore Stock
+      for (final item in items) {
+        final product = await (_db.select(
+          _db.products,
+        )..where((p) => p.id.equals(item.productId))).getSingleOrNull();
+
+        if (product != null) {
+          final restoredStock = product.stock + item.quantity;
+          await (_db.update(_db.products)
+                ..where((p) => p.id.equals(product.id)))
+              .write(ProductsCompanion(stock: Value(restoredStock)));
+        }
+      }
+
+      // 4. Revert Debt if applicable
+      if (transaction.paymentMethod == 'debt' &&
+          transaction.customerId != null) {
+        final customer =
+            await (_db.select(_db.customers)
+                  ..where((c) => c.id.equals(transaction.customerId!)))
+                .getSingleOrNull();
+
+        if (customer != null) {
+          final reducedDebt = customer.totalDebt - transaction.totalAmount;
+          await (_db.update(_db.customers)
+                ..where((c) => c.id.equals(customer.id)))
+              .write(CustomersCompanion(totalDebt: Value(reducedDebt)));
+        }
+      }
+
+      // 5. Delete Records
       await (_db.delete(
         _db.transactionItems,
       )..where((ti) => ti.transactionId.equals(id))).go();

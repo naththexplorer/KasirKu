@@ -29,4 +29,10 @@ class ShopRepository {
       ShopsCompanion(defaultPaymentMethod: Value(method)),
     );
   }
+
+  Future<void> updateQrisImagePath(String? path) async {
+    await (_db.update(_db.shops)..where((s) => s.id.equals(1))).write(
+      ShopsCompanion(qrisImagePath: Value(path)),
+    );
+  }
 }

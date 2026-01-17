@@ -8,6 +8,7 @@ import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../../data/repositories/shop_repository.dart';
 import '../providers/settings_provider.dart';
 import 'shop_profile_screen.dart';
+import 'qris_upload_screen.dart';
 
 // StateProvider untuk trigger refresh shop data
 final _shopRefreshProvider = StateProvider<int>((ref) => 0);
@@ -138,6 +139,20 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   );
                 },
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.qr_code_2),
+            title: const Text('QR Code QRIS'),
+            subtitle: const Text('Upload QR pembayaran QRIS'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const QrisUploadScreen(),
+                ),
               );
             },
           ),
